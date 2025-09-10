@@ -100,11 +100,10 @@ const PdfViewer = () => {
         <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.js">
           <div
             style={{
-              height: "90vh",
+              height: "65vh",
               backgroundColor: "black",
-              position: "relative",
               width: "45vw",
-              zIndex: 100,
+              zIndex: 2000,
               overflow: "visible",
             }}
           >

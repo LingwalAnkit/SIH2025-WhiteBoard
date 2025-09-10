@@ -7,6 +7,7 @@ import ring from ".././resources/audio/ring.mp3";
 import CursorOverlay from "../CursorOverlay/CursorOverlay";
 import AiSearchPopup from "../components/AiSearchPopup";
 import PdfViewer from "../components/PdfViewer";
+import pdfImage from "../resources/icons/icons8-pdf-50.png";
 import { actions, cursorPositions, toolTypes } from "../constants";
 import {
   emitAudioStream,
@@ -22,7 +23,7 @@ import { clearAudioStream } from "../store/audioSlice";
 import { clearFile } from "../store/fileSlice";
 import { store } from "../store/store";
 import Menu from "./Menu";
-import image from "./image.png";
+import AI from "../resources/icons/artificialintelligence.png";
 import {
   adjustElementCoordinates,
   adjustmentRequired,
@@ -80,7 +81,7 @@ const Whiteboard = ({ role, userID, roomID }) => {
   const [openImageModel, setOpenImageModel] = useState();
   const [imageUrl, setImageUrl] = useState();
   const [input, setInput] = useState("");
-  const [showPdf, setShowPdf] = useState(true);
+  const [showPdf, setShowPdf] = useState(false);
 
   const [action, setAction] = useState(null);
   // eslint-disable-next-line
@@ -251,36 +252,54 @@ const Whiteboard = ({ role, userID, roomID }) => {
   }, [role, roomID, userID]);
 
   useEffect(() => {
-    if (file) {
-      console.log("File received:", file, typeof file);
+    console.log("=== WHITEBOARD FILE HANDLER ===");
+    console.log("Current file state:", file);
+    console.log("File type:", typeof file);
 
-      // Handle different file formats
-      if (typeof file === "string") {
-        // Check if it's a PDF by looking at the data URL
-        if (
-          file.includes("application/pdf") ||
-          file.includes("data:application/pdf")
-        ) {
-          console.log("PDF ready for viewing");
-          // Don't clear PDF files immediately - let PDF viewer handle it
-          return;
-        }
-      }
-
-      // Handle other file types (non-PDF)
-      let fileUrl = typeof file === "string" ? file : file.url;
-      if (fileUrl && !fileUrl.includes("application/pdf")) {
-        // Auto-download for non-PDF files
-        const link = document.createElement("a");
-        link.href = fileUrl;
-        link.download = file.fileName || "download";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        dispatch(clearFile());
-      }
+    if (!file) {
+      console.log("No file to process");
+      return;
     }
-  }, [file, dispatch]);
+
+    let isPDF = true;
+    let fileData = null;
+    let fileName = null;
+
+    // Handle different file formats
+    if (typeof file === "string") {
+      fileData = file;
+      // isPDF = file.includes("application/pdf");
+      console.log("String format file, isPDF:", isPDF);
+    } else if (file && typeof file === "object") {
+      fileData = file.file || file.url;
+      fileName = file.fileName;
+      isPDF =
+        file.fileType === "application/pdf" ||
+        (fileName && fileName.toLowerCase().endsWith(".pdf")) ||
+        (fileData && fileData.includes("application/pdf"));
+      console.log("Object format file, isPDF:", isPDF, "fileName:", fileName);
+    }
+
+    if (isPDF) {
+      console.log("✅ PDF detected - opening viewer");
+      setShowPdf(true);
+      return;
+    }
+
+    if (fileData && !isPDF) {
+      console.log("Non-PDF file - downloading");
+      const link = document.createElement("a");
+      link.href = fileData;
+      link.download = fileName || "download";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        dispatch(clearFile());
+      }, 1000);
+    }
+  }, [file, dispatch, setShowPdf]);
 
   useEffect(() => {
     // Reset drawing state when tool changes
@@ -714,6 +733,7 @@ const Whiteboard = ({ role, userID, roomID }) => {
     const dataToSend = { message: input, userID: userID };
     const messageCopy = [...messages, dataToSend];
     console.log(messageCopy);
+    setInput("");
 
     store.dispatch(setMessages(messageCopy));
     emitMessages({ userID, message: input, roomID, messageCopy });
@@ -743,21 +763,28 @@ const Whiteboard = ({ role, userID, roomID }) => {
     }, 7000);
   };
 
+  // In your Whiteboard.js handleFileChange function, add logging:
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
+    console.log("=== FILE UPLOAD DEBUG ===");
+    console.log("Selected file:", file.name, file.type, file.size);
 
-    // Read the file as a Data URL
+    const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (evt) => {
-      // evt.target.result is a Data URL (a base64 encoded string)
+      console.log("FileReader result length:", evt.target.result.length);
+      console.log(
+        "FileReader result preview:",
+        evt.target.result.substring(0, 100)
+      );
+
       emitFile({
         roomID,
         fileName: file.name,
         fileType: file.type,
-        fileData: evt.target.result, // Data URL string
+        fileData: evt.target.result,
       });
     };
   };
@@ -856,7 +883,7 @@ const Whiteboard = ({ role, userID, roomID }) => {
   };
 
   return (
-    <>
+    <div>
       {role === "teacher" && (
         <>
           <Menu roomID={roomID} />
@@ -886,19 +913,20 @@ const Whiteboard = ({ role, userID, roomID }) => {
       {openImageModel && (
         <div
           style={{
-            position: "fixed", // Changed from absolute to fixed
+            position: "fixed",
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            background: "white",
-            padding: "20px",
-            border: "1px solid black",
-            borderRadius: "8px",
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
+            border: "1px solid #e5e7eb",
+            zIndex: 1000,
+            padding: "24px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            zIndex: 1000,
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            gap: "16px",
           }}
         >
           <input
@@ -907,30 +935,43 @@ const Whiteboard = ({ role, userID, roomID }) => {
             value={imageUrl || ""}
             onChange={(e) => setImageUrl(e.target.value)}
             style={{
-              marginBottom: "10px",
               width: "300px",
-              padding: "8px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
+              padding: "12px",
+              border: "1px solid #d1d5db",
+              borderRadius: "8px",
+              fontSize: "14px",
+              outline: "none",
+              transition: "border-color 0.2s ease",
             }}
+            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
             onKeyPress={(e) => {
               if (e.key === "Enter" && imageUrl) {
                 handleAddImage();
               }
             }}
           />
-          <div>
+          <div style={{ display: "flex", gap: "12px" }}>
             <button
               onClick={handleAddImage}
               disabled={!imageUrl}
               style={{
-                marginRight: "10px",
-                padding: "8px 16px",
-                backgroundColor: imageUrl ? "#007bff" : "#ccc",
-                color: "white",
+                padding: "10px 16px",
+                backgroundColor: imageUrl ? "#3b82f6" : "#d1d5db",
+                color: "#ffffff",
                 border: "none",
-                borderRadius: "4px",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "500",
                 cursor: imageUrl ? "pointer" : "not-allowed",
+                transition: "all 0.2s ease",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              }}
+              onMouseOver={(e) => {
+                if (imageUrl) e.target.style.backgroundColor = "#2563eb";
+              }}
+              onMouseOut={(e) => {
+                if (imageUrl) e.target.style.backgroundColor = "#3b82f6";
               }}
             >
               Add Image
@@ -941,13 +982,19 @@ const Whiteboard = ({ role, userID, roomID }) => {
                 setImageUrl("");
               }}
               style={{
-                padding: "8px 16px",
-                backgroundColor: "#6c757d",
-                color: "white",
+                padding: "10px 16px",
+                backgroundColor: "#ef4444",
+                color: "#ffffff",
                 border: "none",
-                borderRadius: "4px",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "500",
                 cursor: "pointer",
+                transition: "all 0.2s ease",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
               }}
+              onMouseOver={(e) => (e.target.style.backgroundColor = "#dc2626")}
+              onMouseOut={(e) => (e.target.style.backgroundColor = "#ef4444")}
             >
               Cancel
             </button>
@@ -960,32 +1007,48 @@ const Whiteboard = ({ role, userID, roomID }) => {
       {role === "student" && showPopup && (
         <div
           style={{
-            border: "2px solid black",
-            width: "200px",
-            position: "absolute",
-            top: "80vh",
-            right: "0vh",
-            borderRadius: "20px",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#787878",
-            color: "#fff",
-            justifyContent: "center",
-            alignItems: "center",
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            width: "280px",
+            padding: "20px",
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
+            border: "1px solid #e5e7eb",
+            zIndex: 1000,
           }}
         >
           <button
-            style={{
-              height: "100%",
-              width: "100%",
-            }}
-            className="awake-button"
             onClick={() => {
               doNotSendData();
             }}
+            style={{
+              width: "100%",
+              padding: "16px",
+              backgroundColor: "#f59e0b",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              boxShadow: "0 2px 8px rgba(245, 158, 11, 0.3)",
+            }}
+            onMouseOver={(e) => (e.target.style.backgroundColor = "#d97706")}
+            onMouseOut={(e) => (e.target.style.backgroundColor = "#f59e0b")}
           >
-            <h2>Are You Awake ?</h2>
-            <p>Press SPACE to confirm</p>
+            <h2
+              style={{
+                margin: "0 0 8px 0",
+                fontSize: "18px",
+                fontWeight: "600",
+              }}
+            >
+              Are You Awake?
+            </h2>
+            <p style={{ margin: "0", fontSize: "14px", opacity: "0.9" }}>
+              Press SPACE to confirm
+            </p>
           </button>
         </div>
       )}
@@ -1004,11 +1067,17 @@ const Whiteboard = ({ role, userID, roomID }) => {
       {role === "teacher" && sleptStudent && (
         <div
           style={{
-            position: "absolute",
-            fontSize: "2.2rem",
-            bottom: 20,
-            right: 10,
-            zIndex: 10,
+            position: "fixed",
+            bottom: "20px",
+            left: "20px",
+            padding: "12px 20px",
+            backgroundColor: "#dc2626",
+            color: "#ffffff",
+            borderRadius: "8px",
+            fontSize: "16px",
+            fontWeight: "600",
+            boxShadow: "0 4px 12px rgba(220, 38, 38, 0.3)",
+            zIndex: 1000,
           }}
         >
           {sleptStudent} is sleeping
@@ -1016,170 +1085,423 @@ const Whiteboard = ({ role, userID, roomID }) => {
       )}
 
       {openChatModal && (
-        <div className="chat-container">
-          <div className="chat-display">
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "400px",
+            maxHeight: "500px",
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
+            border: "1px solid #e5e7eb",
+            zIndex: 1000,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              flex: "1",
+              padding: "16px",
+              maxHeight: "350px",
+              overflowY: "auto",
+              borderBottom: "1px solid #e5e7eb",
+            }}
+          >
             {messages.map((msg, index) => (
-              <div key={index} className="chat-message">
-                from : {msg.userID} : : {msg.message}
+              <div
+                key={index}
+                style={{
+                  marginBottom: "8px",
+                  padding: "8px 12px",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  lineHeight: "1.4",
+                }}
+              >
+                <strong>from: {msg.userID}</strong>: {msg.message}
               </div>
             ))}
           </div>
-          <div className="chat-input-container">
+          <div
+            style={{
+              padding: "16px",
+              display: "flex",
+              gap: "8px",
+            }}
+          >
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type a message..."
-              className="chat-input"
+              style={{
+                flex: "1",
+                padding: "10px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "8px",
+                fontSize: "14px",
+                outline: "none",
+                transition: "border-color 0.2s ease",
+              }}
+              onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+              onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
             />
             <button
               onClick={() => {
                 handleSendChat();
               }}
-              className="chat-send-button"
+              style={{
+                padding: "10px 16px",
+                backgroundColor: "#3b82f6",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "500",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              }}
+              onMouseOver={(e) => (e.target.style.backgroundColor = "#2563eb")}
+              onMouseOut={(e) => (e.target.style.backgroundColor = "#3b82f6")}
             >
               Send
             </button>
             <button
-              className="chat-send-button"
               onClick={() => {
                 setOpenChatModal(false);
               }}
+              style={{
+                padding: "10px 16px",
+                backgroundColor: "#ef4444",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "500",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              }}
+              onMouseOver={(e) => (e.target.style.backgroundColor = "#dc2626")}
+              onMouseOut={(e) => (e.target.style.backgroundColor = "#ef4444")}
             >
               Close
             </button>
           </div>
         </div>
       )}
+
       {role === "teacher" && (
         <button
           onClick={() => setPoleDialogue(true)}
           style={{
-            right: 120,
+            position: "fixed",
+            right: "125px",
+            top: "20px",
+            padding: "12px 20px",
+            backgroundColor: "#8b5cf6",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: "8px",
+            fontSize: "14px",
+            fontWeight: "500",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)",
+            zIndex: 1000,
           }}
-          className="chatbutton"
+          onMouseOver={(e) => (e.target.style.backgroundColor = "#7c3aed")}
+          onMouseOut={(e) => (e.target.style.backgroundColor = "#8b5cf6")}
         >
-          conduct poll
+          Conduct Poll
         </button>
       )}
 
       {role === "teacher" && poleDialogue && (
-        <div className="papa-button-container">
-          <h3>Please select the correct answer</h3>
-          <div className="button-container">
-            <button
-              className="button"
-              onClick={() => {
-                manageQuizClick(1);
-              }}
-            >
-              Option 1
-            </button>
-            <button
-              className="button"
-              onClick={() => {
-                manageQuizClick(2);
-              }}
-            >
-              Option 2
-            </button>
-            <button
-              className="button"
-              onClick={() => {
-                manageQuizClick(3);
-              }}
-            >
-              Option 3
-            </button>
-            <button
-              className="button"
-              onClick={() => {
-                manageQuizClick(4);
-              }}
-            >
-              Option 4
-            </button>
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "450px",
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
+            border: "1px solid #e5e7eb",
+            zIndex: 1000,
+            padding: "24px",
+          }}
+        >
+          <h3
+            style={{
+              margin: "0 0 20px 0",
+              fontSize: "18px",
+              fontWeight: "600",
+              color: "#111827",
+              textAlign: "center",
+            }}
+          >
+            Please select the correct answer
+          </h3>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            {[1, 2, 3, 4].map((option) => (
+              <button
+                key={option}
+                onClick={() => {
+                  manageQuizClick(option);
+                }}
+                style={{
+                  padding: "14px 20px",
+                  backgroundColor: "#f8fafc",
+                  color: "#374151",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = "#e0e7ff";
+                  e.target.style.borderColor = "#3b82f6";
+                  e.target.style.transform = "translateY(-1px)";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = "#f8fafc";
+                  e.target.style.borderColor = "#d1d5db";
+                  e.target.style.transform = "translateY(0)";
+                }}
+              >
+                Option {option}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
       {role === "student" && quizAnswer && (
-        <div className="papa-button-container">
-          <h3>Please select the correct answer</h3>
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "450px",
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
+            border: "1px solid #e5e7eb",
+            zIndex: 1000,
+            padding: "24px",
+          }}
+        >
+          <h3
+            style={{
+              margin: "0 0 20px 0",
+              fontSize: "18px",
+              fontWeight: "600",
+              color: "#111827",
+              textAlign: "center",
+            }}
+          >
+            Please select the correct answer
+          </h3>
 
           {pollResult && (
-            <div>
-              <h2>{resultPoll}</h2>
+            <div
+              style={{
+                margin: "0 0 20px 0",
+                padding: "16px",
+                backgroundColor: "#f0f9ff",
+                borderRadius: "8px",
+                border: "1px solid #0ea5e9",
+              }}
+            >
+              <h2
+                style={{
+                  margin: "0",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  color: "#0ea5e9",
+                  textAlign: "center",
+                }}
+              >
+                {resultPoll}
+              </h2>
             </div>
           )}
 
-          <div className="button-container">
-            <button
-              className="button"
-              onClick={() => {
-                handleStudentAnswer(1);
-              }}
-            >
-              Option 1
-            </button>
-            <button
-              className="button"
-              onClick={() => {
-                handleStudentAnswer(2);
-              }}
-            >
-              Option 2
-            </button>
-            <button
-              className="button"
-              onClick={() => {
-                handleStudentAnswer(3);
-              }}
-            >
-              Option 3
-            </button>
-            <button
-              className="button"
-              onClick={() => {
-                handleStudentAnswer(4);
-              }}
-            >
-              Option 4
-            </button>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            {[1, 2, 3, 4].map((option) => (
+              <button
+                key={option}
+                onClick={() => {
+                  handleStudentAnswer(option);
+                }}
+                style={{
+                  padding: "14px 20px",
+                  backgroundColor: "#f8fafc",
+                  color: "#374151",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = "#e0e7ff";
+                  e.target.style.borderColor = "#3b82f6";
+                  e.target.style.transform = "translateY(-1px)";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = "#f8fafc";
+                  e.target.style.borderColor = "#d1d5db";
+                  e.target.style.transform = "translateY(0)";
+                }}
+              >
+                Option {option}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
+      {/* AI Search Button */}
       <button
         onClick={() => setAISearchOpen(true)}
         style={{
-          padding: 4,
-          borderRadius: 5,
-          position: "absolute",
-          top: 4,
-          left: 10,
-          margin: 0,
+          position: "fixed",
+          top: "20px",
+          left: "20px",
+          width: "40px",
+          height: "40px",
+          backgroundColor: "#ffffff",
+          border: "1px solid #d1d5db",
+          borderRadius: "8px",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+          zIndex: 1000,
+        }}
+        onMouseOver={(e) => {
+          e.target.style.backgroundColor = "#f8fafc";
+          e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+        }}
+        onMouseOut={(e) => {
+          e.target.style.backgroundColor = "#ffffff";
+          e.target.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
         }}
       >
         <img
-          src={image}
-          alt="crashed"
+          src={AI}
+          alt="AI Search"
           style={{
-            height: "30px",
-            width: "auto",
+            height: "24px",
+            width: "24px",
           }}
         />
       </button>
+
       {AISearchOpen && (
         <AiSearchPopup userID={userID} onClose={setAISearchOpen} />
       )}
 
-      <button onClick={() => setOpenChatModal(true)} className="chatbutton">
+      {/* Open Chat Button */}
+      <button
+        onClick={() => setOpenChatModal(true)}
+        style={{
+          position: "fixed",
+          right: "10px",
+          top: "20px",
+          padding: "12px 20px",
+          backgroundColor: "#10b981",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: "8px",
+          fontSize: "14px",
+          fontWeight: "500",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
+          zIndex: 1000,
+        }}
+        onMouseOver={(e) => (e.target.style.backgroundColor = "#059669")}
+        onMouseOut={(e) => (e.target.style.backgroundColor = "#10b981")}
+      >
         Open Chat
       </button>
 
+      {/* PDF Viewer Toggle Button */}
+      <button
+        onClick={() => setShowPdf(true)}
+        style={{
+          position: "fixed",
+          top: "20px",
+          left: role === "student" ? "80px" : "200px",
+          width: "40px",
+          height: "40px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#ffffffff",
+          borderRadius: "25%",
+          border: "none",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          boxShadow: "0 4px 12px rgba(138, 134, 136, 0.3)",
+          zIndex: 1000,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.1)";
+          e.currentTarget.style.backgroundColor = "#ccccccff";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.backgroundColor = "#ffffffff";
+        }}
+      >
+        <img
+          src={pdfImage}
+          alt="pdfimage"
+          style={{
+            color: "#ffffff",
+            height: "30px",
+            width: "30px",
+          }}
+        />
+      </button>
+
+      {/* File Upload Section - Teacher Only */}
       {role === "teacher" && (
-        <div style={{ position: "absolute", top: 5, left: 60 }}>
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            left: "80px",
+          }}
+        >
           <input
             id="file-upload"
             type="file"
@@ -1190,21 +1512,21 @@ const Whiteboard = ({ role, userID, roomID }) => {
             htmlFor="file-upload"
             style={{
               display: "inline-block",
-              backgroundColor: "#36408a",
-              color: "#fff",
               padding: "12px 20px",
-              fontSize: "16px",
-              fontWeight: "bold",
-              borderRadius: "6px",
+              backgroundColor: "#6366f1",
+              color: "#ffffff",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: "500",
               cursor: "pointer",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-              transition: "background-color 0.3s ease",
+              transition: "all 0.2s ease",
+              boxShadow: "0 2px 8px rgba(99, 102, 241, 0.3)",
             }}
             onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "#141c59")
+              (e.currentTarget.style.backgroundColor = "#4f46e5")
             }
             onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "#595e91")
+              (e.currentTarget.style.backgroundColor = "#6366f1")
             }
           >
             Upload File
@@ -1212,67 +1534,112 @@ const Whiteboard = ({ role, userID, roomID }) => {
         </div>
       )}
 
-      <div
-        onClick={() => setShowPdf(true)}
-        style={{
-          position: "absolute",
-          top: 5,
-          left: 200,
-          width: "40px",
-          height: "40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(45deg, #FF4081, #E91E63)",
-          borderRadius: "50%",
-          cursor: "pointer",
-          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)",
-          transition: "transform 0.2s, box-shadow 0.2s",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = "scale(1.1)";
-          e.currentTarget.style.boxShadow = "0 6px 12px rgba(0, 0, 0, 0.4)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "scale(1)";
-          e.currentTarget.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
-        }}
-      >
-        <Package2Icon style={{ color: "#fff", fontSize: "24px" }} />
-      </div>
-
-      {showPdf && (
+      {/* PDF Viewer Modal */}
+      {(showPdf ||
+        (file &&
+          ((typeof file === "string" && file.includes("application/pdf")) ||
+            (typeof file === "object" &&
+              ((file.fileType && file.fileType.includes("pdf")) ||
+                (file.fileName &&
+                  file.fileName.toLowerCase().endsWith(".pdf"))))))) && (
         <div
           style={{
-            position: "absolute",
-            bottom: 10,
-            right: 10,
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "90vw",
+            maxWidth: "1200px",
+            height: "80vh",
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.2)",
+            border: "1px solid #e5e7eb",
+            zIndex: 1000,
             display: "flex",
-            padding: 10,
-            backgroundColor: "#fff",
+            flexDirection: "column",
+            overflow: "hidden",
           }}
         >
-          <button
-            onClick={() => {
-              setShowPdf(false);
-            }}
+          {/* PDF Viewer Header */}
+          <div
             style={{
-              backgroundColor: "#303038",
-              color: "#fff",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "16px 20px",
+              borderBottom: "1px solid #e5e7eb",
+              backgroundColor: "#f8fafc",
             }}
           >
-            X
-          </button>
-          <PdfViewer />
-          <WebsiteShareControl
-            roomID={roomID}
-            userID={userID}
-            isTeacher={true}
-          />
-          <WebsiteDisplay roomID={roomID} userID={userID} />
+            <h3
+              style={{
+                margin: "0",
+                fontSize: "18px",
+                fontWeight: "600",
+                color: "#111827",
+              }}
+            >
+              {file && file.fileName ? file.fileName : "PDF Document"}
+            </h3>
+            <button
+              onClick={() => {
+                setShowPdf(false);
+                dispatch(clearFile());
+              }}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#ef4444",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "500",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              }}
+              onMouseEnter={(e) => (e.target.style.backgroundColor = "#dc2626")}
+              onMouseLeave={(e) => (e.target.style.backgroundColor = "#ef4444")}
+            >
+              Close PDF
+            </button>
+          </div>
+
+          {/* PDF Viewer Content */}
+          <div
+            style={{
+              flex: "1",
+              display: "flex",
+              flexDirection: "column",
+              padding: "20px",
+              gap: "16px",
+              overflow: "auto",
+            }}
+          >
+            <div style={{ flex: "2", minHeight: "400px" }}>
+              <PdfViewer />
+            </div>
+
+            <div
+              style={{
+                flex: "1",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <WebsiteShareControl
+                roomID={roomID}
+                userID={userID}
+                isTeacher={role === "teacher"}
+              />
+              <WebsiteDisplay roomID={roomID} userID={userID} />
+            </div>
+          </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

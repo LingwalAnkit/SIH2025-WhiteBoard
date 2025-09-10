@@ -11,6 +11,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
     "axios": "^1.7.9",
+    "framer-motion": "^12.23.12",
     "lucide-react": "^0.468.0",
     "pako": "^2.1.0",
     "pdfjs-dist": "^3.4.120",

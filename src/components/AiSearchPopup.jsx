@@ -1,72 +1,150 @@
-import React, { useState } from 'react';
-import { emitQuestion } from '../socketConn/socketConn';
-import { useSelector } from 'react-redux';
+import React, { useState } from "react";
+import { emitQuestion } from "../socketConn/socketConn";
+import { useSelector } from "react-redux";
+import { motion } from "framer-motion";
 
 const AiSearchPopup = ({ onClose, userID }) => {
-  const [question, setQuestion] = React.useState('');
-  const getResponseFromAI = () => {
-    const questionText = question + " please answer in " + language + " Language only if it is explicit content do not give answer just warn about the "
-    emitQuestion({ question: questionText, userID })
-  }
+  const [question, setQuestion] = useState("");
   const [language, setLanguage] = useState("english");
+
+  const answerFromAI = useSelector((state) => state.ai.answerFromAI);
+
+  const getResponseFromAI = () => {
+    const questionText =
+      question +
+      " please answer in " +
+      language +
+      " Language only if it is explicit content do not give answer just warn about the ";
+    emitQuestion({ question: questionText, userID });
+  };
 
   const handleLanguageChange = (e) => {
     setLanguage(e.target.value);
     console.log("Selected language:", e.target.value);
   };
-  const answerFromAI = useSelector((state) => state.ai.answerFromAI);
+
+  const handleClose = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onClose && typeof onClose === "function") {
+      onClose();
+    }
+  };
+
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
       style={{
-        position: 'absolute',
-        top: 50,
-        left: 50,
+        position: "absolute",
+        top: 200,
+        left: 450,
         background: "#fff",
         padding: "20px",
         border: "1px solid #ddd",
-        maxHeight: '80vh',
+        borderRadius: "8px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+        width: 500,
+        maxHeight: "80vh",
+        overflowY: "auto",
+        zIndex: 9999,
       }}
     >
-      <button style={{
-        borderRadius: '100%',
-        padding: '5px',
-        backgroundColor: 'transparent',
-        border: 'none',
-
-      }} onClick={() => { onClose() }}>
-        X
+      <button
+        type="button"
+        style={{
+          position: "absolute",
+          top: "8px",
+          right: "8px",
+          borderRadius: "50%",
+          width: "28px",
+          height: "28px",
+          backgroundColor: "#ef4444",
+          color: "white",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "14px",
+          fontWeight: "bold",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          lineHeight: "1",
+        }}
+        onClick={handleClose}
+        onMouseDown={handleClose}
+      >
+        ×
       </button>
-      <div style={{
-        marginBottom: 3,
-        overflowY: 'scroll',
-        maxHeight: '70vh'
-      }}>
-        <p style={{
-          marginBottom: 4,
-        }}> Search For Definition Or Word Meaning </p><br />
-        <div>
-          <input style={{
-            padding: 8,
-            border: 'none',
-            backgroundColor: '#5d5d5d',
-            color: 'white',
-            marginRight: 10
-          }} type="text" value={question} onChange={(e) => { setQuestion(e.target.value) }} />
-          <button style={{
-            padding: 8,
-            backgroundColor: '#5d5d5d',
-            color: 'white',
-            border: 'none'
 
-          }} onClick={() => { getResponseFromAI() }}>Get Response</button> <br />
-          <label htmlFor="language-select">Select a Language: </label>
+      <div style={{ marginTop: "10px" }}>
+        <p
+          style={{ marginBottom: "15px", fontSize: "16px", fontWeight: "600" }}
+        >
+          Search For Definition Or Word Meaning
+        </p>
+
+        <div style={{ marginBottom: "15px" }}>
+          <input
+            style={{
+              padding: "10px",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              backgroundColor: "#f9fafb",
+              color: "#374151",
+              marginRight: "10px",
+              width: "200px",
+              outline: "none",
+            }}
+            type="text"
+            value={question}
+            placeholder="Enter your question..."
+            onChange={(e) => setQuestion(e.target.value)}
+          />
+
+          <button
+            type="button"
+            style={{
+              padding: "10px 16px",
+              backgroundColor: "#3b82f6",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "500",
+            }}
+            onClick={getResponseFromAI}
+          >
+            Get Response
+          </button>
+        </div>
+
+        <div style={{ marginBottom: "15px" }}>
+          <label
+            htmlFor="language-select"
+            style={{
+              display: "block",
+              marginBottom: "5px",
+              fontSize: "14px",
+              fontWeight: "500",
+              color: "#374151",
+            }}
+          >
+            Select Language:
+          </label>
           <select
             id="language-select"
             value={language}
             onChange={handleLanguageChange}
             style={{
-              padding: 10,
-              marginTop: 10
+              padding: "8px 12px",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              backgroundColor: "#ffffff",
+              color: "#374151",
+              outline: "none",
+              cursor: "pointer",
             }}
           >
             <option value="english">English</option>
@@ -84,19 +162,33 @@ const AiSearchPopup = ({ onClose, userID }) => {
           </select>
         </div>
 
-
-        {
-          <pre style={{
-            margin: 10,
-            padding: 5,
-            width: '30rem'
-          }}>
-            {answerFromAI}
-          </pre>
-        }
-
+        {answerFromAI && (
+          <div
+            style={{
+              maxHeight: "300px",
+              overflowY: "auto",
+              backgroundColor: "#f9fafb",
+              border: "1px solid #e5e7eb",
+              borderRadius: "6px",
+              padding: "12px",
+            }}
+          >
+            <pre
+              style={{
+                margin: 0,
+                whiteSpace: "pre-wrap",
+                fontFamily: "inherit",
+                fontSize: "14px",
+                lineHeight: "1.5",
+                color: "#374151",
+              }}
+            >
+              {answerFromAI}
+            </pre>
+          </div>
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

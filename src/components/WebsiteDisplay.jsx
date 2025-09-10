@@ -1,11 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { closeSharedWebsite, resetSharingState } from '../store/websiteSlice';
-import { emitWebsiteClosed } from '../socketConn/socketConn';
+import React, { useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { closeSharedWebsite, resetSharingState } from "../store/websiteSlice";
+import { emitWebsiteClosed } from "../socketConn/socketConn";
 
 const WebsiteDisplay = ({ roomID, userID }) => {
   const dispatch = useDispatch();
-  const { websiteUrl, isDisplaying, sharedBy } = useSelector((state) => state.website);
+  const { websiteUrl, isDisplaying, sharedBy } = useSelector(
+    (state) => state.website
+  );
   const iframeRef = useRef(null);
 
   useEffect(() => {
@@ -43,7 +45,7 @@ const WebsiteDisplay = ({ roomID, userID }) => {
           src={websiteUrl}
           title="Shared Website"
           className="website-iframe"
-          sandbox="allow-scripts allow-same-origin allow-forms"
+          sandbox="allow-scripts allow-same-origin allow-scripts allow-forms"
           allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
         ></iframe>
       </div>

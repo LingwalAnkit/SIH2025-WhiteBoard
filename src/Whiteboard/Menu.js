@@ -1,7 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toolTypes } from "../constants";
+import { motion, AnimatePresence } from "framer-motion";
 import ImageIcon from "../resources/icons/ImageIcon.svg";
 import lineIcon from "../resources/icons/line.svg";
 import pencilIcon from "../resources/icons/pencil.svg";
@@ -31,7 +32,6 @@ const OPTIONS = [
 
 const IconButton = ({ src, type, isRubber, isClearAll, roomID }) => {
   const dispatch = useDispatch();
-
   const selectedToolType = useSelector((state) => state.whiteboard.tool);
 
   const handleToolChange = () => {
@@ -43,7 +43,6 @@ const IconButton = ({ src, type, isRubber, isClearAll, roomID }) => {
     emitClearWhiteboard(roomID);
   };
 
-  // Determine which action to take
   const handleClick = () => {
     if (isClearAll) {
       handleClearCanvas();
@@ -52,29 +51,52 @@ const IconButton = ({ src, type, isRubber, isClearAll, roomID }) => {
     }
   };
 
+  const buttonStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "40px",
+    height: "40px",
+    border: "1px solid #ddd",
+    borderRadius: "8px",
+    backgroundColor: selectedToolType === type ? "#3b82f6" : "#ffffff",
+    cursor: "pointer",
+    padding: "0px",
+    transition: "all 0.2s ease",
+    boxShadow:
+      selectedToolType === type
+        ? "0 2px 8px rgba(59, 130, 246, 0.3)"
+        : "0 1px 3px rgba(0, 0, 0, 0.1)",
+  };
+
   return (
-    <button
-      onClick={handleClick}
-      className={
-        selectedToolType === type ? "menu_button_active" : "menu_button"
-      }
-    >
+    <button onClick={handleClick} style={buttonStyle}>
       <img alt="Tool Icon" width="70%" height="70%" src={src} />
     </button>
   );
 };
 
 const Menu = ({ roomID }) => {
-  const dispatch = useDispatch(); // Move useDispatch to the top level of the component
-  // eslint-disable-next-line no-unused-vars
+  const dispatch = useDispatch();
   const [AISearchOpen, setAISearchOpen] = useState(false);
   const fillShape = useSelector((state) => state.fillShape.filling);
   const [selected, setSelected] = useState("hachure");
 
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (expanded) {
+      timer = setTimeout(() => {
+        setExpanded(false);
+      }, 4000); // collapse after 4 seconds
+    }
+    return () => clearTimeout(timer);
+  }, [expanded]);
+
   const handleChange = (e) => {
     const value = e.target.value;
     setSelected(value);
-    // dispatch the redux action with the selected value
     dispatch(setFillStyle(value));
   };
 
@@ -87,80 +109,152 @@ const Menu = ({ roomID }) => {
     dispatch(setFillMode(!fillShape));
   };
 
+  const toggleExpand = () => {
+    setExpanded((prev) => !prev);
+  };
+
+  const menuContainerStyle = {
+    position: "fixed",
+    top: "0px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    padding: expanded ? "12px" : "10px",
+    backgroundColor: "#ffffff",
+    borderRadius: "12px",
+    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+    border: "1px solid #e5e7eb",
+    zIndex: 1000,
+    height: expanded ? "40px" : "30px",
+  };
+
+  const collapsedContainerStyle = {
+    display: "flex",
+    justifyContent: "center",
+    gap: "8px",
+    cursor: "pointer",
+    width: "160px",
+    height: "30px",
+    alignItems: "center",
+    fontWeight: "600",
+    fontSize: "16px",
+    color: "#374151",
+    borderRadius: "12px",
+    border: "1px solid #ddd",
+    userSelect: "none",
+  };
+
+  const expandedContentStyle = {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: "12px",
+  };
+
   return (
-    <div className="menu_container">
-      <div
-        style={{
-          position: "absolute",
-          top: "0",
-          left: "600px",
-        }}
-      >
-        <ColorPicker />
-      </div>
-
-      <IconButton src={rectangleIcon} type={toolTypes.RECTANGLE} />
-      <IconButton src={lineIcon} type={toolTypes.LINE} />
-
-      {/* Eraser tool - for selecting and removing individual elements */}
-      <IconButton src={rubberIcon} type={toolTypes.ERASER} />
-
-      <IconButton src={pencilIcon} type={toolTypes.PENCIL} />
-      <IconButton src={textIcon} type={toolTypes.TEXT} />
-      <IconButton src={triangle} type={toolTypes.TRIANGLE} />
-      <IconButton src={selectionIcon} type={toolTypes.SELECTION} />
-      <IconButton src={ImageIcon} type={toolTypes.IMAGE} />
-      <IconButton src={Circle} type={toolTypes.CIRCLE} />
-
-      {/* Clear All button - separate button for clearing entire whiteboard */}
-      <button
-        onClick={handleClearAll}
-        className="menu_button clear_all_button"
-        title="Clear All Elements"
-      >
-        <img
-          src={Bin}
-          alt="Clear All"
-          className="w-2 h-2"
-          height={25}
-          width={25}
-        />
-      </button>
-      <button
-        onClick={toggleFillState}
-        className={`${
-          fillShape === true ? "menu_button_active" : "menu_button"
-        } clear_all_button`}
-        title="Clear All Elements"
-      >
-        <img
-          src={fillBucket}
-          alt="Clear All"
-          className="w-2 h-2"
-          height={25}
-          width={25}
-        />
-      </button>
-      <div className={`flex flex-col gap-2 `}>
-        <label htmlFor="fill-style" className="text-sm font-medium">
-          Fill style
-        </label>
-
-        <select
-          id="fill-style"
-          aria-label="Select fill style"
-          value={selected}
-          onChange={handleChange}
-          className="appearance-none rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-offset-1"
+    <motion.div
+      style={menuContainerStyle}
+      initial={{ width: 160 }}
+      animate={{ width: expanded ? 750 : 160 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+    >
+      {!expanded ? (
+        <div
+          style={collapsedContainerStyle}
+          onClick={toggleExpand}
+          title="Expand Tools"
         >
-          {OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
+          Text Toolbar
+        </div>
+      ) : (
+        <div style={expandedContentStyle}>
+          {/* Color Picker */}
+          <ColorPicker />
+
+          {/* Tool Buttons */}
+          <IconButton src={rectangleIcon} type={toolTypes.RECTANGLE} />
+          <IconButton src={lineIcon} type={toolTypes.LINE} />
+          <IconButton src={rubberIcon} type={toolTypes.ERASER} />
+          <IconButton src={pencilIcon} type={toolTypes.PENCIL} />
+          <IconButton src={textIcon} type={toolTypes.TEXT} />
+          <IconButton src={triangle} type={toolTypes.TRIANGLE} />
+          <IconButton src={selectionIcon} type={toolTypes.SELECTION} />
+          <IconButton src={ImageIcon} type={toolTypes.IMAGE} />
+          <IconButton src={Circle} type={toolTypes.CIRCLE} />
+
+          {/* Clear All Button */}
+          <button
+            onClick={handleClearAll}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "48px",
+              height: "48px",
+              border: "1px solid #ef4444",
+              borderRadius: "8px",
+              backgroundColor: "#ffffff",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+            }}
+            title="Clear All Elements"
+          >
+            <img src={Bin} alt="Clear All" height={25} width={25} />
+          </button>
+
+          {/* Fill Mode Toggle Button */}
+          <button
+            onClick={toggleFillState}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "48px",
+              height: "48px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              backgroundColor: fillShape === true ? "#3b82f6" : "#ffffff",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              boxShadow:
+                fillShape === true
+                  ? "0 2px 8px rgba(59, 130, 246, 0.3)"
+                  : "0 1px 3px rgba(0, 0, 0, 0.1)",
+            }}
+            title="Toggle Fill Mode"
+          >
+            <img src={fillBucket} alt="Fill Mode" height={25} width={25} />
+          </button>
+
+          {/* Fill Style Selector */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <select
+              id="fill-style"
+              aria-label="Select fill style"
+              value={selected}
+              onChange={handleChange}
+              style={{
+                appearance: "none",
+                borderRadius: "8px",
+                border: "1px solid #d1d5db",
+                padding: "8px 12px",
+                fontSize: "14px",
+                backgroundColor: "#ffffff",
+                cursor: "pointer",
+                outline: "none",
+                minWidth: "120px",
+              }}
+            >
+              {OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 };
 

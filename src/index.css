@@ -8,7 +8,7 @@ body {
   top: 0;
   left: 47%;
   transform: translateX(-50%);
-  width: 500px;
+  width: 700px;
   border-bottom-left-radius: 15px;
   border-bottom-right-radius: 15px;
   background: #EEEEEE;
@@ -23,14 +23,7 @@ body {
 
 
 
-.color_picker_container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 10px;
-  right: -96px;
-  position: absolute;
-}
+
 
 .color_display {
   width: 30px;
