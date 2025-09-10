@@ -7,6 +7,7 @@ import lineIcon from "../resources/icons/line.svg";
 import pencilIcon from "../resources/icons/pencil.svg";
 import rectangleIcon from "../resources/icons/rectangle.svg";
 import rubberIcon from "../resources/icons/rubber.svg";
+import fillBucket from "../resources/icons/fillBucket.svg";
 import selectionIcon from "../resources/icons/selection.svg";
 import textIcon from "../resources/icons/text.svg";
 import { emitClearWhiteboard } from "../socketConn/socketConn";
@@ -15,6 +16,18 @@ import ColorPicker from "./utils/ColorPicker";
 import Circle from "../resources/icons/circle.svg";
 import triangle from "../resources/icons/triangle.png";
 import Bin from "../resources/icons/icons8-bin-50.png";
+import { setFillMode, setFillStyle } from "../store/fillShape";
+
+const OPTIONS = [
+  { value: "hachure", label: "Hachure" },
+  { value: "solid", label: "Solid" },
+  { value: "zigzag", label: "Zigzag" },
+  { value: "cross-hatch", label: "Cross-hatch" },
+  { value: "dots", label: "Dots" },
+  { value: "sunburst", label: "Sunburst" },
+  { value: "dashed", label: "Dashed" },
+  { value: "zigzag-line", label: "Zigzag Line" },
+];
 
 const IconButton = ({ src, type, isRubber, isClearAll, roomID }) => {
   const dispatch = useDispatch();
@@ -55,10 +68,23 @@ const Menu = ({ roomID }) => {
   const dispatch = useDispatch(); // Move useDispatch to the top level of the component
   // eslint-disable-next-line no-unused-vars
   const [AISearchOpen, setAISearchOpen] = useState(false);
+  const fillShape = useSelector((state) => state.fillShape.filling);
+  const [selected, setSelected] = useState("hachure");
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setSelected(value);
+    // dispatch the redux action with the selected value
+    dispatch(setFillStyle(value));
+  };
 
   const handleClearAll = () => {
     dispatch(setElements([]));
     emitClearWhiteboard(roomID);
+  };
+
+  const toggleFillState = () => {
+    dispatch(setFillMode(!fillShape));
   };
 
   return (
@@ -100,6 +126,40 @@ const Menu = ({ roomID }) => {
           width={25}
         />
       </button>
+      <button
+        onClick={toggleFillState}
+        className={`${
+          fillShape === true ? "menu_button_active" : "menu_button"
+        } clear_all_button`}
+        title="Clear All Elements"
+      >
+        <img
+          src={fillBucket}
+          alt="Clear All"
+          className="w-2 h-2"
+          height={25}
+          width={25}
+        />
+      </button>
+      <div className={`flex flex-col gap-2 `}>
+        <label htmlFor="fill-style" className="text-sm font-medium">
+          Fill style
+        </label>
+
+        <select
+          id="fill-style"
+          aria-label="Select fill style"
+          value={selected}
+          onChange={handleChange}
+          className="appearance-none rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-offset-1"
+        >
+          {OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 };

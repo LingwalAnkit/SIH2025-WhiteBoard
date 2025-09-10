@@ -73,6 +73,15 @@ body {
   background: #FFF1DC;
 }
 
+.menu_button_active {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  transition: 0.3s;
+  background: #8b8c42;
+}
+
 
 
 .website-display-container {

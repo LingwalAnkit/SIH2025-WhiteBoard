@@ -98,9 +98,29 @@ export const connectWithSocketServer = (roomID, userID) => {
     store.dispatch(removeCursorPosition(disconnectedUserId));
   });
 
-  socket.on("message", ({ userID, message, roomID, messageCopy }) => {
-    console.log(`Message copy : : ${messageCopy}`);
-    store.dispatch(setMessages(messageCopy));
+  socket.on("message", (compressedMessage) => {
+    try {
+      // Decompress
+      const binaryString = atob(compressedMessage);
+      const charCodes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        charCodes[i] = binaryString.charCodeAt(i);
+      }
+      const decompressed = pako.inflate(charCodes, { to: "string" });
+      console.log(JSON.parse(decompressed));
+      const { userID, message, roomID, messageCopy } = JSON.parse(decompressed);
+      console.log(`ssdbasjkdsa\n\n\nsadkhbask : ${userID}`);
+
+      // const decompressed = pako.inflate(compressedMessage, { to: "string" });
+      // const message = JSON.parse(decompressed);
+
+      console.log("Received message:", message);
+
+      // Example usage:
+      store.dispatch(setMessages(messageCopy));
+    } catch (err) {
+      console.error("Decompression failed:", err);
+    }
   });
 
   socket.on("quiz", ({ correctAnswer }) => {
@@ -253,7 +273,12 @@ export const emitStudentSleeping = (userID, roomID) => {
 };
 
 export const emitMessages = ({ userID, message, roomID, messageCopy }) => {
-  socket.emit("message", { userID, message, roomID, messageCopy });
+  const jsonString = JSON.stringify({ userID, message, roomID, messageCopy });
+  const compressed = pako.deflate(jsonString);
+  socket.emit("message", {
+    roomID: roomID,
+    compressedMessage: btoa(String.fromCharCode(...compressed)),
+  });
 };
 
 export const quiz = ({ correctAnswer, roomID }) => {

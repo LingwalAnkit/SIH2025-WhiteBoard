@@ -26,7 +26,7 @@ export const updatePencilElementWhenMoving = (
 };
 
 export const updateElement = (
-  { id, x1, x2, y1, y2, type, index, text, src, color },
+  { id, x1, x2, y1, y2, type, index, text, src, color, fill, fillStyle },
   elements,
   roomID
 ) => {
@@ -46,6 +46,8 @@ export const updateElement = (
         y2,
         toolType: type,
         color, // Include color when updating
+        fill,
+        fillColorStyle: fillStyle,
       });
 
       elementsCopy[index] = updatedElement;

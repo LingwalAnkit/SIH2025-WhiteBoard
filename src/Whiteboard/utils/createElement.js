@@ -1,17 +1,21 @@
 import rough from "roughjs/bundled/rough.esm";
 import { toolTypes } from "../../constants";
 import { emitElementUpdate } from "../../socketConn/socketConn";
+import { useSelector } from "react-redux";
 
 const generator = rough.generator();
 
-const generateRectangle = ({ x1, y1, x2, y2, color }) => {
+const generateRectangle = ({ x1, y1, x2, y2, color, filling, fillStyle }) => {
   console.log("generateRectangle called with color:", color);
+  console.log(`\n\nfillinf style  here \n\n${fillStyle}\n\n`);
+  const toFillColor = filling ? color : false;
   return generator.rectangle(x1, y1, x2 - x1, y2 - y1, {
-    fill: color || "red",
+    fill: toFillColor,
     stroke: color || "red",
     hachureAngle: 60,
     hachureGap: 8,
-    fillStyle: "hachure",
+    // fillStyle: "",
+    fillStyle: fillStyle,
   });
 };
 
@@ -25,7 +29,8 @@ const generateLine = ({ x1, y1, x2, y2, color }) => {
   });
 };
 
-const generateCircle = ({ x1, y1, x2, y2, color }) => {
+const generateCircle = ({ x1, y1, x2, y2, color, filling, fillStylee }) => {
+  const toFillColor = filling ? color : false;
   const width = Math.abs(x2 - x1);
   const height = Math.abs(y2 - y1);
   const centerX = Math.min(x1, x2) + width / 2;
@@ -33,14 +38,16 @@ const generateCircle = ({ x1, y1, x2, y2, color }) => {
   const radius = Math.max(width, height) / 2;
 
   return generator.circle(centerX, centerY, radius * 2, {
-    fill: color || "blue",
+    fill: toFillColor,
     stroke: color || "blue",
     hachureAngle: 60,
     hachureGap: 8,
+    fillStyle: fillStylee,
   });
 };
 
-const generateTriangle = ({ x1, y1, x2, y2, color }) => {
+const generateTriangle = ({ x1, y1, x2, y2, color, filling, fillStylee }) => {
+  const toFillColor = filling ? color : false;
   // Ensure the coordinates are valid numbers AND not identical
   if (
     isNaN(x1) ||
@@ -50,6 +57,7 @@ const generateTriangle = ({ x1, y1, x2, y2, color }) => {
     (x1 === x2 && y1 === y2)
   ) {
     console.error("Invalid coordinates for triangle:", { x1, y1, x2, y2 });
+
     // Return a minimal triangle that won't cause issues
     return generator.polygon(
       [
@@ -58,12 +66,13 @@ const generateTriangle = ({ x1, y1, x2, y2, color }) => {
         [x1, y1 + 1],
       ],
       {
-        fill: color || "#FFD700",
+        fill: toFillColor,
         stroke: color || "#FFD700",
-        fillStyle: "hachure",
+        // fillStyle: "hachure",
         hachureAngle: 60,
         hachureGap: 8,
         roughness: 1,
+        fillStyle: fillStylee,
       }
     );
   }
@@ -79,12 +88,13 @@ const generateTriangle = ({ x1, y1, x2, y2, color }) => {
         [x1 + 1, y1 + 2],
       ],
       {
-        fill: color || "#FFD700",
+        fill: toFillColor,
         stroke: color || "#FFD700",
-        fillStyle: "hachure",
+        // fillStyle: "hachure",
         hachureAngle: 60,
         hachureGap: 8,
         roughness: 1,
+        fillStyle: fillStylee,
       }
     );
   }
@@ -104,12 +114,13 @@ const generateTriangle = ({ x1, y1, x2, y2, color }) => {
       [x3, y3],
     ],
     {
-      fill: color || "#FFD700",
+      fill: toFillColor,
       stroke: color || "#FFD700",
-      fillStyle: "hachure",
+      // fillStyle: "hachure",
       hachureAngle: 60,
       hachureGap: 8,
       roughness: 1,
+      fillStyle: fillStylee,
     }
   );
 };
@@ -121,18 +132,31 @@ export const createElement = ({
   x2,
   y2,
   toolType,
+  fillColorStyle,
   id,
   text,
   src,
   roomID,
   color,
+  fill,
 }) => {
   let roughElement;
   const elementColor = color || "#000000";
+  console.log(
+    `\n\nFILL STATE AT CREATE ELEMENT LINE 136 ${fillColorStyle} \n\n`
+  );
 
   switch (toolType) {
     case toolTypes.RECTANGLE:
-      roughElement = generateRectangle({ x1, y1, x2, y2, color });
+      roughElement = generateRectangle({
+        x1,
+        y1,
+        x2,
+        y2,
+        color,
+        filling: fill,
+        fillStyle: fillColorStyle,
+      });
       return {
         id: id,
         roughElement,
@@ -158,7 +182,16 @@ export const createElement = ({
       };
 
     case toolTypes.TRIANGLE:
-      roughElement = generateTriangle({ x1, y1, x2, y2, color });
+      roughElement = generateTriangle({
+        x1,
+        y1,
+        x2,
+        y2,
+        color,
+        fill,
+        filling: fill,
+        fillStylee: fillColorStyle,
+      });
       return {
         id: id,
         roughElement,
@@ -171,7 +204,16 @@ export const createElement = ({
       };
 
     case toolTypes.CIRCLE:
-      roughElement = generateCircle({ x1, y1, x2, y2, color });
+      roughElement = generateCircle({
+        x1,
+        y1,
+        x2,
+        y2,
+        color,
+        fill,
+        filling: fill,
+        fillStylee: fillColorStyle,
+      });
       return {
         id: id,
         roughElement,

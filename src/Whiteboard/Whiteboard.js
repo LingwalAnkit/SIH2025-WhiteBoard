@@ -68,6 +68,7 @@ const Whiteboard = ({ role, userID, roomID }) => {
   // eslint-disable-next-line
   const sleptStudent = useSelector((state) => state.whiteboard.slepingStudent);
   const messages = useSelector((state) => state.whiteboard.messages);
+  console.log(messages);
   const quizAnswer = useSelector((state) => state.whiteboard.quizAnswer);
   const [pollResult, setPollResult] = useState(false);
   const [iscorrect, setIsCorrect] = useState(null);
@@ -92,6 +93,10 @@ const Whiteboard = ({ role, userID, roomID }) => {
   const [showPopup, setShowPopup] = useState(false);
   const dispatch = useDispatch();
   const audioRef = useRef(null);
+  const fillShape = useSelector((state) => state.fillShape.filling);
+  const fillStylee = useSelector((state) => state.fillShape.fillStyle);
+
+  console.log(`\n\n${fillStylee}\n\n`);
 
   const audioStreamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -239,7 +244,7 @@ const Whiteboard = ({ role, userID, roomID }) => {
           }
           return newCount;
         });
-      }, 1000 * 60 * 1);
+      }, 4000 * 4 * 5);
 
       return () => clearInterval(popupInterval); // Cleanup interval on unmount
     }
@@ -349,6 +354,8 @@ const Whiteboard = ({ role, userID, roomID }) => {
       return;
     }
 
+    console.log(`${fillStylee}`);
+
     switch (toolType) {
       case toolTypes.RECTANGLE:
       case toolTypes.LINE:
@@ -363,6 +370,8 @@ const Whiteboard = ({ role, userID, roomID }) => {
           toolType,
           id: uuid(),
           color: selectedColor,
+          fill: fillShape,
+          fillColorStyle: fillStylee,
         });
 
         setAction(actions.DRAWING);
@@ -498,6 +507,8 @@ const Whiteboard = ({ role, userID, roomID }) => {
             y2: clientY,
             type: elements[index].type,
             color: elementColor,
+            fill: fillShape,
+            fillStyle: fillStylee,
           },
           elements,
           roomID
@@ -667,6 +678,8 @@ const Whiteboard = ({ role, userID, roomID }) => {
               y2,
               type: elements[selectedElementIndex].type,
               color: currentColor,
+              fill: fillShape,
+              fillStyle: fillStylee,
             },
             elements,
             roomID
