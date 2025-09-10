@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gemini Image Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #image-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        #image-container img {
+            max-width: 300px;
+            max-height: 300px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        #prompt-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #prompt-input {
+            flex-grow: 1;
+            padding: 8px;
+        }
+        #generate-btn {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #loading {
+            display: none;
+            color: #666;
+        }
+        #error-message {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gemini Image Generator</h1>
+    
+    <form id="prompt-form">
+        <input 
+            type="text" 
+            id="prompt-input" 
+            placeholder="Enter image generation prompt" 
+            required
+        >
+        <button type="submit" id="generate-btn">Generate Image</button>
+    </form>
+    
+    <div id="loading">Generating image...</div>
+    <div id="error-message"></div>
+    
+    <div id="image-container"></div>
+
+    <script>
+        const promptForm = document.getElementById('prompt-form');
+        const promptInput = document.getElementById('prompt-input');
+        const imageContainer = document.getElementById('image-container');
+        const loadingIndicator = document.getElementById('loading');
+        const errorMessage = document.getElementById('error-message');
+
+        promptForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Reset previous state
+            imageContainer.innerHTML = '';
+            errorMessage.textContent = '';
+            loadingIndicator.style.display = 'block';
+
+            const prompt = promptInput.value.trim();
+
+            try {
+                const response = await fetch('/generate_image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+
+                const data = await response.json();
+
+                loadingIndicator.style.display = 'none';
+
+                if (response.ok) {
+                    if (data.images && data.images.length > 0) {
+                        data.images.forEach(imageUrl => {
+                            const img = document.createElement('img');
+                            img.src = imageUrl;
+                            img.alt = prompt;
+                            img.loading = 'lazy';
+                            imageContainer.appendChild(img);
+                        });
+                    } else {
+                        errorMessage.textContent = 'No images were generated.';
+                    }
+                } else {
+                    errorMessage.textContent = data.error || 'Failed to generate image';
+                }
+            } catch (error) {
+                loadingIndicator.style.display = 'none';
+                errorMessage.textContent = 'An error occurred while generating the image.';
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
