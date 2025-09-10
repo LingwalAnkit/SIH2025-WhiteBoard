@@ -5,7 +5,8 @@ import Whiteboard from "./Whiteboard";
 import { useLocation } from "react-router-dom";
 import io from "socket.io-client";
 
-const AUDIO_SERVER_URL = "http://localhost:3001";
+const AUDIO_SERVER_URL =
+  "https://audio-room-full-fina-sih-backend.onrender.com/";
 
 const peerConfig = {
   iceServers: [

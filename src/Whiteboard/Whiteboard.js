@@ -96,18 +96,19 @@ const Whiteboard = ({ role, userID, roomID }) => {
   const audioRef = useRef(null);
   const fillShape = useSelector((state) => state.fillShape.filling);
   const fillStylee = useSelector((state) => state.fillShape.fillStyle);
+  const websiteUrl = useSelector((state) => state.website.websiteUrl);
 
   console.log(`\n\n${fillStylee}\n\n`);
 
-  const audioStreamRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
-
   // Select audio-related state from Redux
   // eslint-disable-next-line
-  const activeAudioSource = useSelector(
-    (state) => state.audioStreaming.activeAudioSource
-  );
+
   const audioStream = useSelector((state) => state.audioStreaming.audioStream);
+  useEffect(() => {
+    if (websiteUrl) {
+      window.open(websiteUrl, "_blank");
+    }
+  }, [websiteUrl]);
 
   useEffect(() => {
     const handleSpacebar = (e) => {
@@ -129,98 +130,11 @@ const Whiteboard = ({ role, userID, roomID }) => {
   }, [showPopup]);
 
   useEffect(() => {
-    // Audio streaming setup for teacher
-    if (role === "teacher") {
-      const startAudioCapture = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: false,
-          });
-
-          audioStreamRef.current = stream;
-          mediaRecorderRef.current = new MediaRecorder(stream);
-
-          const audioChunks = [];
-
-          mediaRecorderRef.current.addEventListener(
-            "dataavailable",
-            (event) => {
-              audioChunks.push(event.data);
-            }
-          );
-
-          mediaRecorderRef.current.addEventListener("stop", () => {
-            const audioBlob = new Blob(audioChunks);
-            audioChunks.length = 0; // Clear the array
-
-            const fileReader = new FileReader();
-            fileReader.readAsDataURL(audioBlob);
-            fileReader.onloadend = () => {
-              const base64String = fileReader.result;
-              emitAudioStream({
-                audioData: base64String,
-                roomID,
-                userID,
-              });
-            };
-
-            // Restart recording
-            mediaRecorderRef.current.start();
-            setTimeout(() => {
-              mediaRecorderRef.current.stop();
-            }, 150);
-          });
-
-          // Initial start
-          mediaRecorderRef.current.start();
-          setTimeout(() => {
-            mediaRecorderRef.current.stop();
-          }, 100);
-        } catch (error) {
-          console.error("Error setting up audio capture:", error);
-        }
-      };
-
-      startAudioCapture();
-    }
-
-    // Cleanup function
-    return () => {
-      if (audioStreamRef.current) {
-        audioStreamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-      }
-      dispatch(clearAudioStream());
-    };
-  }, [role, roomID, userID, dispatch]);
-
-  useEffect(() => {
     console.log("Elements array updated:", {
       count: elements.length,
       elementIds: elements.map((el) => ({ id: el.id, type: el.type })),
     });
   }, [elements]);
-
-  // Optional: Audio playback for students
-  useEffect(() => {
-    if (role === "student" && audioStream) {
-      const audio = new Audio(audioStream);
-      audio.play().catch((error) => {
-        if (error.name !== "AbortError") {
-          console.error("Error playing audio:", error);
-          dispatch(clearAudioStream());
-        }
-      });
-
-      return () => {
-        audio.pause();
-        audio.currentTime = 0;
-      };
-    }
-  }, [audioStream, role, dispatch]);
 
   const doNotSendData = () => {
     setWakeupIndex(0);
@@ -1634,7 +1548,7 @@ const Whiteboard = ({ role, userID, roomID }) => {
                 userID={userID}
                 isTeacher={role === "teacher"}
               />
-              <WebsiteDisplay roomID={roomID} userID={userID} />
+              {/* <WebsiteDisplay roomID={roomID} userID={userID} /> */}
             </div>
           </div>
         </div>
